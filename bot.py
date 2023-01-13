@@ -14,16 +14,15 @@ import pandas as pd
 import numpy as np
 import requests
 import yfinance as yf
-from scipy import stats
 import matplotlib.pyplot as plt
 import mplfinance as mpf
 
 #Time tooling
 from datetime import datetime
-from dateutil.parser import parse
 from newsapi.newsapi_client import NewsApiClient
 from requests import *
 import json
+
 
 months = ['January','Febuary','March',
           'April','May','June','July',
@@ -123,9 +122,53 @@ async def graph_test(ctx,
         await ctx.send(file=discord.File(filename))
         os.remove("output.png")
     
-@client.command(name="Graph-Volatility",help="Returns stock volatility over a specified interval")
-async def chart_volatility(ctx):
-    pass 
+@client.command(name="Graph-MACD",help="Returns the full MACD of a given stock including S&P500")
+async def chart_volatility(ctx,date1,date2,stock):
+    
+    if(date2 == "Present"): 
+        right_time_point = datetime.today()
+        left_time_point = convert_timestamp(date1)
+    else:
+        try:
+            right_time_point = convert_timestamp(date2)
+            left_time_point = convert_timestamp(date1)
+        except ValueError:
+            await ctx.send("ERROR: Invalid format, please use %Y-%m-%d-%H:%M:%S or %Y-%m-%d")
+            raise discord.DiscordException("ERROR: Invalid format, please use %Y-%m-%d-%H:%M:%S or %Y-%m-%d")
+    
+    if(left_time_point > right_time_point or right_time_point > datetime.today() or left_time_point > datetime.today()):
+        await ctx.send("ERROR: Cannot have the first time point greater than the second time point OR any time thats greater than today")
+        raise discord.DiscordException("ERROR: Cannot have the first time point greater than the second time point")
+    else:
+        await ctx.send(f'Years selected: {left_time_point.year}-{right_time_point.year}, stock selected: {stock}, first time point: {left_time_point}, second time point: {right_time_point}')
+
+        data = get_data(stock, left_time_point, right_time_point)
+        print(data['Close'])
+        exp12 = data['Close'].ewm(span=12, adjust=False).mean()
+        exp26 = data['Close'].ewm(span=26, adjust=False).mean()
+        
+        macd = exp12 - exp26
+        
+        signal = macd.ewm(span=9, adjust=False).mean()
+        histogram = macd - signal
+        
+        apds = [mpf.make_addplot(exp12,color='lime'),
+        mpf.make_addplot(exp26,color='c'),
+        mpf.make_addplot(histogram,type='bar',width=0.7,panel=1,
+                         color='dimgray',alpha=1,secondary_y=False),
+        mpf.make_addplot(macd,panel=1,color='fuchsia',secondary_y=True),
+        mpf.make_addplot(signal,panel=1,color='b',secondary_y=True),
+       ]
+
+        mpf.plot(data,type='candle',addplot=apds,figscale=1.1,figratio=(8,5),title='\nMACD',
+                style='blueskies',volume=True,volume_panel=2,panel_ratios=(6,3,2),savefig='output.png')
+        
+        filename = 'output.png'
+        await ctx.send(file=discord.File(filename))
+        os.remove("output.png")
+        
+
+        
 
 # def parse_json(stockJson):
 #     '''Should only have Close, Open, Volume, Low, High'''
