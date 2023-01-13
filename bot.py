@@ -19,7 +19,8 @@ import matplotlib.pyplot as plt
 import mplfinance as mpf
 
 #Time tooling
-from datetime import datetime, timedelta
+from datetime import datetime
+from dateutil.parser import parse
 from newsapi.newsapi_client import NewsApiClient
 from requests import *
 import json
@@ -60,28 +61,40 @@ def get_data(stock, start_date, end_date):
     df = pdr.get_data_yahoo(stock, start = start_date, end = end_date)
     return df
 
-@client.command(name='Graph-Performance',help="Returns stock performance over a specified interval of months")
-async def chart(ctx,
-                chart_type = commands.parameter(default='Line',description="Chart type: Line, Candle, Renko, OHLC, Point-Figure"), 
-                year1 = commands.parameter(description="1970-Present"), 
-                month1= commands.parameter(description="1-12"), 
-                day1 = commands.parameter(description="Depends on the month, but usually 1-30"), 
-                year2 = commands.parameter(description="1970-Presnet"), 
-                month2 = commands.parameter(description="1-12"), 
-                day2 = commands.parameter(description="Depends on the month, but usually 1-30"), 
-                stock = commands.parameter(description="Ticker symbol of stock, ex: AAPL, GOOGL...")):
-    '''Purely done for UI purposes, I really did not want to use this but there is no other way'''
+def convert_timestamp(date_time):
+    ALLOWED_STRING_FORMATS = ["%Y-%m-%d-%H:%M:%S", "%Y-%m-%d"]
+    for format in ALLOWED_STRING_FORMATS:
+        try:
+            d = datetime.strptime(date_time, format)
+            return d
+        except ValueError:
+            pass
+
+@client.command(name='Graph-Performance',help='Returns a chart of stock performance over a time interval')
+async def graph_test(ctx, 
+                     date1=commands.parameter(description="Date in %Y-%m-%d-%H:%M:%S or %Y-%m-%d"), 
+                     date2=commands.parameter(description="Date in %Y-%m-%d-%H:%M:%S or %Y-%m-%d"), 
+                     stock=commands.parameter(description="Stock ticker, AAPL, GOOGL, etc"), 
+                     chart_type=commands.parameter(description="Line, Candle, Renko, Point-Figure, OHLC")):
     
-    right_time_point = datetime(int(year2), int(month2), int(day2))
-    left_time_point = datetime(int(year1), int(month1), int(day1))
+    if(date2 == "Present"): 
+        right_time_point = datetime.today()
+        left_time_point = convert_timestamp(date1)
+    else:
+        try:
+            right_time_point = convert_timestamp(date2)
+            left_time_point = convert_timestamp(date1)
+        except ValueError:
+            await ctx.send("ERROR: Invalid format, please use %Y-%m-%d-%H:%M:%S or %Y-%m-%d")
+            raise discord.DiscordException("ERROR: Invalid format, please use %Y-%m-%d-%H:%M:%S or %Y-%m-%d")
     
     if(left_time_point > right_time_point or right_time_point > datetime.today() or left_time_point > datetime.today()):
         await ctx.send("ERROR: Cannot have the first time point greater than the second time point OR any time thats greater than today")
         raise discord.DiscordException("ERROR: Cannot have the first time point greater than the second time point")
     else:
-        await ctx.send(f'Years selected: {year1}-{year2}, stock selected: {stock}, first time point: {left_time_point}, second time point: {right_time_point}')
-        
-        data = get_data(stock, left_time_point.strftime('%Y-%m-%d'), right_time_point.strftime('%Y-%m-%d'))
+        await ctx.send(f'Years selected: {left_time_point.year}-{right_time_point.year}, stock selected: {stock}, first time point: {left_time_point}, second time point: {right_time_point}')
+
+        data = get_data(stock, left_time_point, right_time_point)
         
         plt.clf()
         
@@ -96,30 +109,35 @@ async def chart(ctx,
         
         match chart_type:
             case 'Line':
-                mpf.plot(data,type='line',style=mpf_style,title=f'Stock Price between {months[int(month1)-1]} {day1} and {months[int(month2)-1]} {day2} within {year1}-{year2}',savefig='output.png')
+                mpf.plot(data,type='line',style=mpf_style,title=f'Stock Price between {months[left_time_point.month-1]} {left_time_point.day} and {months[right_time_point.month-1]} {right_time_point.day} within {left_time_point.year}-{right_time_point.year}',savefig='output.png')
             case 'Candle':
-                mpf.plot(data, type='candle',style=mpf_style,title=f'Stock Price between {months[int(month1)-1]} {day1} {year1} and {months[int(month2)-1]} {day2} {year2}',savefig='output.png')
+                mpf.plot(data,type='candle',style=mpf_style,title=f'Stock Price between {months[left_time_point.month-1]} {left_time_point.day} and {months[right_time_point.month-1]} {right_time_point.day} within {left_time_point.year}-{right_time_point.year}',savefig='output.png')
             case 'Renko':
-                mpf.plot(data,type='renko',style=mpf_style,title=f'Stock Price between {months[int(month1)-1]} {day1} and {months[int(month2)]-1} {day2} within {year1}-{year2}',savefig='output.png',renko_params=dict(brick_size=0.75))
+                mpf.plot(data,type='renko',style=mpf_style,title=f'Stock Price between {months[left_time_point.month-1]} {left_time_point.day} and {months[right_time_point.month-1]} {right_time_point.day} within {left_time_point.year}-{right_time_point.year}',savefig='output.png',renko_params=dict(brick_size=0.75))
             case 'Point-Figure':
-                mpf.plot(data,type='pnf',style=mpf_style, title=f'Stock Price between {months[int(month1)-1]} {day1} and {months[int(month2)-1]} {day2} within {year1}-{year2}',savefig='output.png')
+                mpf.plot(data,type='pnf',style=mpf_style,title=f'Stock Price between {months[left_time_point.month-1]} {left_time_point.day} and {months[right_time_point.month-1]} {right_time_point.day} within {left_time_point.year}-{right_time_point.year}',savefig='output.png')
             case 'OHLC':
-                mpf.plot(data,type='ohlc',style=mpf_style, title=f'Stock Price between {months[int(month1)-1]} {day1} and {months[int(month2)-1]} {day2} within {year1}-{year2}',savefig='output.png')
+                mpf.plot(data,type='ohlc',style=mpf_style,title=f'Stock Price between {months[left_time_point.month-1]} {left_time_point.day} and {months[right_time_point.month-1]} {right_time_point.day} within {left_time_point.year}-{right_time_point.year}',savefig='output.png')
             
         filename = 'output.png'
         await ctx.send(file=discord.File(filename))
-
-def parse_json(stockJson):
-    '''Should only have Close, Open, Volume, Low, High'''
-    pass
-  
-@client.command(name='RealTime', help='Shows realtime statistics of a specified stock')
-async def stock_realtime(ctx, symbol:str):
-    url = f'https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1m&range=1d&close=adjusted'
+        os.remove("output.png")
     
-    response = requests.get(url,headers={'User-agent': 'Mozilla/5.0'})
-    d = response.json()
-    data = parse_json(d) 
+@client.command(name="Graph-Volatility",help="Returns stock volatility over a specified interval")
+async def chart_volatility(ctx):
+    pass 
+
+# def parse_json(stockJson):
+#     '''Should only have Close, Open, Volume, Low, High'''
+#     pass
+  
+# @client.command(name='RealTime', help='Shows realtime statistics of a specified stock')
+# async def stock_realtime(ctx, symbol:str):
+#     url = f'https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1m&range=1d&close=adjusted'
+    
+#     response = requests.get(url,headers={'User-agent': 'Mozilla/5.0'})
+#     d = response.json()
+#     data = parse_json(d) 
         
         
 client.run(TOKEN)
