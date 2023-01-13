@@ -1,0 +1,8 @@
+discord.py
+newsapi-python
+pandas
+matplotlib
+yfinance==0.1.62
+pandas-datareader
+requests
+bs4
