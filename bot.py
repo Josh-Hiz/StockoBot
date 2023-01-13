@@ -9,7 +9,7 @@ from discord.ext import commands
 from dotenv import load_dotenv
 
 #import data science tools
-from pandas_datareader import data as pdr, get_data_enigma
+from pandas_datareader import data as pdr
 import pandas as pd
 import numpy as np
 import requests
@@ -17,7 +17,6 @@ import yfinance as yf
 from scipy import stats
 import matplotlib.pyplot as plt
 import mplfinance as mpf
-import disnake
 
 #Time tooling
 from datetime import datetime, timedelta
