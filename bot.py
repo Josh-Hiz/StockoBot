@@ -1,3 +1,5 @@
+#TODO: Parse realtime JSON (Second or Third), Add historical and implied volatility ability (First), add animated graphs (Second or Third)
+
 #import os
 import os
 
@@ -70,8 +72,8 @@ def convert_timestamp(date_time):
 
 @client.command(name='Graph-Performance',help='Returns a chart of stock performance over a time interval')
 async def performance_graph(ctx, 
-                     date1=commands.parameter(description="Date in %Y-%m-%d-%H:%M:%S or %Y-%m-%d"), 
-                     date2=commands.parameter(description="Date in %Y-%m-%d-%H:%M:%S or %Y-%m-%d"), 
+                     date1=commands.parameter(description="Date in %Y/%m/%d-%H:%M:%S or %Y/%m/%d"), 
+                     date2=commands.parameter(description="Date in %Y/%m/%d-%H:%M:%S or %Y/%m/%d"), 
                      stock=commands.parameter(description="Stock ticker, AAPL, GOOGL, etc"), 
                      chart_type=commands.parameter(description="Line, Candle, Renko, Point-Figure, OHLC"),
                      mav_set=commands.parameter(default=10,description="Moving average setting 2-20")):
@@ -108,7 +110,7 @@ async def performance_graph(ctx,
                                        volume="white",
                                        ohlc='orange')
         
-        mpf_style = mpf.make_mpf_style(base_mpf_style='nightclouds',marketcolors = colors)
+        mpf_style = mpf.make_mpf_style(base_mpf_style='nightclouds',marketcolors = colors,mavcolors=['#ff00ff'])
         
         match chart_type:
             case 'Line':
@@ -140,8 +142,8 @@ async def chart_macd(ctx,date1,date2,stock):
             right_time_point = convert_timestamp(date2)
             left_time_point = convert_timestamp(date1)
         except ValueError:
-            await ctx.send("ERROR: Invalid format, please use %Y-%m-%d-%H:%M:%S or %Y-%m-%d")
-            raise discord.DiscordException("ERROR: Invalid format, please use %Y-%m-%d-%H:%M:%S or %Y-%m-%d")
+            await ctx.send("ERROR: Invalid format, please use %Y/%m/%d-%H:%M:%S or %Y/%m/%d")
+            raise discord.DiscordException("ERROR: Invalid format, please use %Y/%m/%d-%H:%M:%S or %Y/%m/%d")
     
     if(left_time_point > right_time_point or right_time_point > datetime.today() or left_time_point > datetime.today()):
         await ctx.send("ERROR: Cannot have the first time point greater than the second time point OR any time thats greater than today")
@@ -188,8 +190,8 @@ async def chart_volatility(ctx, date1, date2, option, stock):
             right_time_point = convert_timestamp(date2)
             left_time_point = convert_timestamp(date1)
         except ValueError:
-            await ctx.send("ERROR: Invalid format, please use %Y-%m-%d-%H:%M:%S or %Y-%m-%d")
-            raise discord.DiscordException("ERROR: Invalid format, please use %Y-%m-%d-%H:%M:%S or %Y-%m-%d")
+            await ctx.send("ERROR: Invalid format, please use %Y/%m/%d-%H:%M:%S or %Y/%m/%d")
+            raise discord.DiscordException("ERROR: Invalid format, please use %Y/%m/%d-%H:%M:%S or %Y/%m/%d")
         
     if(left_time_point > right_time_point or right_time_point > datetime.today() or left_time_point > datetime.today()):
         await ctx.send("ERROR: Cannot have the first time point greater than the second time point OR any time thats greater than today")
@@ -199,8 +201,7 @@ async def chart_volatility(ctx, date1, date2, option, stock):
         
         data = get_data(stock, left_time_point, right_time_point)
         data['Log returns'] = np.log(data['Close']/data['Close'].shift())
-        # data['Log returns'].std()
-        print(data)
+
 
 # Handle any invalid calls
 @client.event
