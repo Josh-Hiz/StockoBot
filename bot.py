@@ -18,6 +18,9 @@ import requests
 import yfinance as yf
 import matplotlib.pyplot as plt
 import mplfinance as mpf
+from plotly.subplots import make_subplots
+import kaleido
+import plotly.express as px
 
 #Time tooling
 from datetime import datetime
@@ -175,8 +178,8 @@ async def chart_macd(ctx,date1,date2,stock):
         await ctx.send(file=discord.File(filename))
         os.remove("output.png")
         
-@client.command(name="Graph-Volatility",help='Returns the historical or implied volatility of a stock, or both')
-async def chart_volatility(ctx, date1, date2, option, stock):
+@client.command(name="Graph-Volatility",help='Showcases historical volatility or provides volatility prediction using GARCH')
+async def chart_volatility(ctx, date1, date2, option, chart_type, stock):
     
     if(stock == None or option == None):
         await ctx.send("ERROR: Cannot have stock=Nonetype")
@@ -200,7 +203,33 @@ async def chart_volatility(ctx, date1, date2, option, stock):
         await ctx.send(f'Years selected: {left_time_point.year}-{right_time_point.year}, stock selected: {stock}, first time point: {left_time_point}, second time point: {right_time_point}')
         
         data = get_data(stock, left_time_point, right_time_point)
-        data['Log returns'] = np.log(data['Close']/data['Close'].shift())
+        log_returns = np.log(data.Close/data.Close.shift(1)).dropna()
+        daily_std = log_returns.std()
+        annualized_vol = daily_std*np.sqrt(252) * 100
+        match option:
+            case "Historical":
+                match chart_type:
+                    case 'Line':
+                        # Have log returns for volatility line chart
+                        TRADING_DAYS = 60
+                        vol = log_returns.rolling(window=TRADING_DAYS).std() * np.sqrt(TRADING_DAYS)
+                        trace = px.line(vol)
+                        trace.write_image("output.png")
+                    case 'Histogram':
+                        trace = px.histogram(log_returns,title=f"{stock} Annualized Volatility: {str(round(annualized_vol,1))}")
+                        trace.update_layout(showlegend=False, xaxis_title=None, yaxis_title=None)
+                        trace.write_image("output.png")
+            case "Predict":
+                match chart_type:
+                    # Predict will only have Line for GARCH model
+                    case 'GARCH':
+                        trace = px.line(log_returns * 100,title="Volatility with prediction")
+                        trace.update_layout(yaxis_title="Frequency")
+                        trace.write_image("output.png")
+        
+        filename = 'output.png'
+        await ctx.send(file=discord.File(filename))
+        os.remove("output.png")
 
 
 # Handle any invalid calls

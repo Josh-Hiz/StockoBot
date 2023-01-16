@@ -2,7 +2,9 @@ discord.py
 newsapi-python
 pandas
 matplotlib
-yfinance==0.1.62
+yfinance
 pandas-datareader
 requests
 bs4
+plotly
+kaleido
