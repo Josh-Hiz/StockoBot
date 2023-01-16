@@ -73,6 +73,12 @@ def convert_timestamp(date_time):
         except ValueError:
             pass
 
+def validate_time(left_time_point, right_time_point):
+    if(left_time_point > right_time_point or right_time_point > datetime.today() or left_time_point > datetime.today()):
+        return False
+    else: 
+        return True
+
 @client.command(name='Graph-Performance',help='Returns a chart of stock performance over a time interval')
 async def performance_graph(ctx, 
                      date1=commands.parameter(description="Date in %Y/%m/%d-%H:%M:%S or %Y/%m/%d"), 
@@ -96,12 +102,9 @@ async def performance_graph(ctx,
             await ctx.send("ERROR: Invalid format, please use %Y/%m/%d-%H:%M:%S or %Y/%m/%d")
             raise discord.DiscordException("ERROR: Invalid format, please use %Y/%m/%d-%H:%M:%S or %Y/%m/%d")
     
-    if(left_time_point > right_time_point or right_time_point > datetime.today() or left_time_point > datetime.today()):
-        await ctx.send("ERROR: Cannot have the first time point greater than the second time point OR any time thats greater than today")
-        raise discord.DiscordException("ERROR: Cannot have the first time point greater than the second time point")
-    else:
+    if validate_time(left_time_point, right_time_point):
         await ctx.send(f'Years selected: {left_time_point.year}-{right_time_point.year}, stock selected: {stock}, first time point: {left_time_point}, second time point: {right_time_point}')
-
+            
         data = get_data(stock, left_time_point, right_time_point)
         
         plt.clf()
@@ -127,9 +130,11 @@ async def performance_graph(ctx,
             case 'OHLC':
                 mpf.plot(data,mav=mav_set,volume=True,type='ohlc',style=mpf_style,title=f'\nStock Price between {months[left_time_point.month-1]} {left_time_point.day} and {months[right_time_point.month-1]} {right_time_point.day} within {left_time_point.year}-{right_time_point.year}',savefig='output.png')
             
-        filename = 'output.png'
-        await ctx.send(file=discord.File(filename))
+        await ctx.send(file=discord.File('output.png'))
         os.remove("output.png")
+    else:
+        await ctx.send("ERROR: Cannot have the first time point greater than the second time point OR any time thats greater than today")
+        raise discord.DiscordException("ERROR: Cannot have the first time point greater than the second time point")
     
 @client.command(name="Graph-MACD",help="Returns the full MACD of a given stock including S&P500")
 async def chart_macd(ctx,date1,date2,stock):
@@ -148,12 +153,9 @@ async def chart_macd(ctx,date1,date2,stock):
             await ctx.send("ERROR: Invalid format, please use %Y/%m/%d-%H:%M:%S or %Y/%m/%d")
             raise discord.DiscordException("ERROR: Invalid format, please use %Y/%m/%d-%H:%M:%S or %Y/%m/%d")
     
-    if(left_time_point > right_time_point or right_time_point > datetime.today() or left_time_point > datetime.today()):
-        await ctx.send("ERROR: Cannot have the first time point greater than the second time point OR any time thats greater than today")
-        raise discord.DiscordException("ERROR: Cannot have the first time point greater than the second time point")
-    else:
+    if validate_time(left_time_point, right_time_point):
         await ctx.send(f'Years selected: {left_time_point.year}-{right_time_point.year}, stock selected: {stock}, first time point: {left_time_point}, second time point: {right_time_point}')
-
+            
         data = get_data(stock, left_time_point, right_time_point)
         exp12 = data['Close'].ewm(span=12, adjust=False).mean()
         exp26 = data['Close'].ewm(span=26, adjust=False).mean()
@@ -173,15 +175,73 @@ async def chart_macd(ctx,date1,date2,stock):
 
         mpf.plot(data,type='candle',addplot=apds,figscale=1.1,figratio=(8,5),title=f'\nMACD of {stock}',
                 style='blueskies',volume=True,volume_panel=2,panel_ratios=(6,3,2),savefig='output.png')
-        
-        filename = 'output.png'
-        await ctx.send(file=discord.File(filename))
+
+        await ctx.send(file=discord.File('output.png'))
         os.remove("output.png")
-        
+    else:
+        await ctx.send("ERROR: Cannot have the first time point greater than the second time point OR any time thats greater than today")
+        raise discord.DiscordException("ERROR: Cannot have the first time point greater than the second time point")
+
 @client.command(name="Graph-Volatility",help='Showcases historical volatility or provides volatility prediction using GARCH')
-async def chart_volatility(ctx, date1, date2, option, chart_type, stock):
+async def chart_volatility(ctx, 
+                           date1=commands.parameter(description="Date in %Y/%m/%d-%H:%M:%S or %Y/%m/%d"), 
+                           date2=commands.parameter(description="Date in %Y/%m/%d-%H:%M:%S or %Y/%m/%d"), 
+                           option=commands.parameter(description="Either Historical or Predict"), 
+                           chart_type=commands.parameter(description="Historical use Line or Histogram, for Predict use GARCH"), 
+                           stock=commands.parameter(description="Stock ticker, AAPL, GOOGL, etc")):
     
     if(stock == None or option == None):
+        await ctx.send("ERROR: Cannot have stock or option = Nonetype")
+        raise discord.DiscordException("ERROR: Cannot have stock or option = Nonetype")
+    
+    if(date2 == "Present"): 
+        right_time_point = datetime.today()
+        left_time_point = convert_timestamp(date1)
+    else:
+        try:
+            right_time_point = convert_timestamp(date2)
+            left_time_point = convert_timestamp(date1)
+        except ValueError:
+            await ctx.send("ERROR: Invalid format, please use %Y/%m/%d-%H:%M:%S or %Y/%m/%d")
+            raise discord.DiscordException("ERROR: Invalid format, please use %Y/%m/%d-%H:%M:%S or %Y/%m/%d")
+        
+    if validate_time(left_time_point, right_time_point):
+        await ctx.send(f'Years selected: {left_time_point.year}-{right_time_point.year}, stock selected: {stock}, first time point: {left_time_point}, second time point: {right_time_point}')
+            
+        data = get_data(stock, left_time_point, right_time_point)
+        log_returns = np.log(data.Close/data.Close.shift(1)).dropna()
+        daily_std = log_returns.std()
+        annualized_vol = daily_std*np.sqrt(252) * 100
+        match option:
+            case "Historical":
+                match chart_type:
+                    case 'Line':
+                        TRADING_DAYS = 60
+                        vol = log_returns.rolling(window=TRADING_DAYS).std() * np.sqrt(TRADING_DAYS)
+                        trace = px.line(vol,title="Historical volatility over a rolling window")
+                        trace.write_image("output.png")
+                    case 'Histogram':
+                        trace = px.histogram(log_returns,title=f"{stock} Annualized Volatility: {str(round(annualized_vol,1))}")
+                        trace.update_layout(showlegend=False, xaxis_title=None, yaxis_title=None)
+                        trace.write_image("output.png")
+            case "Predict":
+                match chart_type:
+                    # Predict will only have Line for GARCH model
+                    case 'GARCH':
+                        trace = px.line(log_returns * 100,title="Volatility with prediction")
+                        trace.update_layout(yaxis_title="Frequency")
+                        trace.write_image("output.png")
+
+        await ctx.send(file=discord.File('output.png'))
+        os.remove("output.png")
+    else:
+        await ctx.send("ERROR: Cannot have the first time point greater than the second time point OR any time thats greater than today")
+        raise discord.DiscordException("ERROR: Cannot have the first time point greater than the second time point")
+
+@client.command(name="Graph-Ratio",help='Showcases the specific ratio of a stock')
+async def chart_volatility(ctx, date1, date2, option, stock):
+    
+    if(stock == None):
         await ctx.send("ERROR: Cannot have stock=Nonetype")
         raise discord.DiscordException("ERROR: Cannot have stock=Nonetype")
     
@@ -196,42 +256,27 @@ async def chart_volatility(ctx, date1, date2, option, chart_type, stock):
             await ctx.send("ERROR: Invalid format, please use %Y/%m/%d-%H:%M:%S or %Y/%m/%d")
             raise discord.DiscordException("ERROR: Invalid format, please use %Y/%m/%d-%H:%M:%S or %Y/%m/%d")
         
-    if(left_time_point > right_time_point or right_time_point > datetime.today() or left_time_point > datetime.today()):
-        await ctx.send("ERROR: Cannot have the first time point greater than the second time point OR any time thats greater than today")
-        raise discord.DiscordException("ERROR: Cannot have the first time point greater than the second time point")
-    else:
+    if validate_time(left_time_point, right_time_point):
         await ctx.send(f'Years selected: {left_time_point.year}-{right_time_point.year}, stock selected: {stock}, first time point: {left_time_point}, second time point: {right_time_point}')
-        
+
+        # Basically copy from volatility
         data = get_data(stock, left_time_point, right_time_point)
         log_returns = np.log(data.Close/data.Close.shift(1)).dropna()
-        daily_std = log_returns.std()
-        annualized_vol = daily_std*np.sqrt(252) * 100
+        TRADING_DAYS = 60
+        Rf = 0.01/252
+        vol = log_returns.rolling(window=TRADING_DAYS).std() * np.sqrt(TRADING_DAYS)
         match option:
-            case "Historical":
-                match chart_type:
-                    case 'Line':
-                        # Have log returns for volatility line chart
-                        TRADING_DAYS = 60
-                        vol = log_returns.rolling(window=TRADING_DAYS).std() * np.sqrt(TRADING_DAYS)
-                        trace = px.line(vol)
-                        trace.write_image("output.png")
-                    case 'Histogram':
-                        trace = px.histogram(log_returns,title=f"{stock} Annualized Volatility: {str(round(annualized_vol,1))}")
-                        trace.update_layout(showlegend=False, xaxis_title=None, yaxis_title=None)
-                        trace.write_image("output.png")
-            case "Predict":
-                match chart_type:
-                    # Predict will only have Line for GARCH model
-                    case 'GARCH':
-                        trace = px.line(log_returns * 100,title="Volatility with prediction")
-                        trace.update_layout(yaxis_title="Frequency")
-                        trace.write_image("output.png")
-        
-        filename = 'output.png'
-        await ctx.send(file=discord.File(filename))
+            case "Sharpe-Ratio":
+                sharpe_ratio = (log_returns.rolling(window=TRADING_DAYS).mean() - Rf)*TRADING_DAYS/vol
+                trace = px.line(sharpe_ratio)
+                trace.write_image("output.png")
+            
+        await ctx.send(file=discord.File('output.png'))
         os.remove("output.png")
-
-
+    else:
+        await ctx.send("ERROR: Cannot have the first time point greater than the second time point OR any time thats greater than today")
+        raise discord.DiscordException("ERROR: Cannot have the first time point greater than the second time point")
+    
 # Handle any invalid calls
 @client.event
 async def on_command_error(ctx, error):
