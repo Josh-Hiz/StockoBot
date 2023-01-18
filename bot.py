@@ -1,4 +1,4 @@
-#TODO: Parse realtime JSON (Second or Third), Add historical and implied volatility ability (First), add animated graphs (Second or Third)
+#TODO: Parse realtime JSON (First), add animated graphs (Second)
 
 #import os
 import os
@@ -129,8 +129,12 @@ async def performance_graph(ctx,
                 mpf.plot(data,volume=True,type='pnf',style=mpf_style,title=f'\nStock Price between {months[left_time_point.month-1]} {left_time_point.day} and {months[right_time_point.month-1]} {right_time_point.day} within {left_time_point.year}-{right_time_point.year}',savefig='output.png',pnf_params=dict(box_size='atr',atr_length=2))
             case 'OHLC':
                 mpf.plot(data,mav=mav_set,volume=True,type='ohlc',style=mpf_style,title=f'\nStock Price between {months[left_time_point.month-1]} {left_time_point.day} and {months[right_time_point.month-1]} {right_time_point.day} within {left_time_point.year}-{right_time_point.year}',savefig='output.png')
-            
-        await ctx.send(file=discord.File('output.png'))
+        
+        file = discord.File("output.png", filename="output.png")
+        embed = discord.Embed(colour=0xFF8300,title=f"Stock {chart_type} Performance Plot")
+        embed.set_image(url="attachment://output.png")
+        await ctx.send(embed=embed, file=file)
+        
         os.remove("output.png")
     else:
         await ctx.send("ERROR: Cannot have the first time point greater than the second time point OR any time thats greater than today")
@@ -176,7 +180,11 @@ async def chart_macd(ctx,date1,date2,stock):
         mpf.plot(data,type='candle',addplot=apds,figscale=1.1,figratio=(8,5),title=f'\nMACD of {stock}',
                 style='blueskies',volume=True,volume_panel=2,panel_ratios=(6,3,2),savefig='output.png')
 
-        await ctx.send(file=discord.File('output.png'))
+        file = discord.File("output.png", filename="output.png")
+        embed = discord.Embed(colour=0xFF8300,title="Stock MACD Plot")
+        embed.set_image(url="attachment://output.png")
+        await ctx.send(embed=embed, file=file)
+        
         os.remove("output.png")
     else:
         await ctx.send("ERROR: Cannot have the first time point greater than the second time point OR any time thats greater than today")
@@ -232,7 +240,11 @@ async def chart_volatility(ctx,
                         trace.update_layout(yaxis_title="Frequency")
                         trace.write_image("output.png")
 
-        await ctx.send(file=discord.File('output.png'))
+        file = discord.File("output.png", filename="output.png")
+        embed = discord.Embed(colour=0xFF8300,title=f"Stock Volatility {chart_type} Plot")
+        embed.set_image(url="attachment://output.png")
+        await ctx.send(embed=embed, file=file)
+        
         os.remove("output.png")
     else:
         await ctx.send("ERROR: Cannot have the first time point greater than the second time point OR any time thats greater than today")
@@ -259,25 +271,28 @@ async def chart_volatility(ctx, date1, date2, option, stock):
     if validate_time(left_time_point, right_time_point):
         await ctx.send(f'Years selected: {left_time_point.year}-{right_time_point.year}, stock selected: {stock}, first time point: {left_time_point}, second time point: {right_time_point}')
 
-        # Basically copy from volatility
         data = get_data(stock, left_time_point, right_time_point)
         log_returns = np.log(data.Close/data.Close.shift(1)).dropna()
         TRADING_DAYS = 60
         Rf = 0.01/252
         vol = log_returns.rolling(window=TRADING_DAYS).std() * np.sqrt(TRADING_DAYS)
+        
         match option:
             case "Sharpe-Ratio":
                 sharpe_ratio = (log_returns.rolling(window=TRADING_DAYS).mean() - Rf)*TRADING_DAYS/vol
                 trace = px.line(sharpe_ratio)
                 trace.write_image("output.png")
-            
-        await ctx.send(file=discord.File('output.png'))
+        
+        file = discord.File("output.png", filename="output.png")
+        embed = discord.Embed(colour=0xFF8300,title=f"Stock {option} Plot")
+        embed.set_image(url="attachment://output.png")
+        await ctx.send(embed=embed, file=file)
+        
         os.remove("output.png")
     else:
         await ctx.send("ERROR: Cannot have the first time point greater than the second time point OR any time thats greater than today")
         raise discord.DiscordException("ERROR: Cannot have the first time point greater than the second time point")
     
-# Handle any invalid calls
 @client.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound): 
