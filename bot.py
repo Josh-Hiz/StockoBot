@@ -1,5 +1,3 @@
-#TODO: Parse realtime JSON (First), add animated graphs (Second)
-
 #import os
 import os
 
@@ -14,13 +12,12 @@ from dotenv import load_dotenv
 from pandas_datareader import data as pdr
 import pandas as pd
 import numpy as np
-import requests
 import yfinance as yf
 import matplotlib.pyplot as plt
 import mplfinance as mpf
-from plotly.subplots import make_subplots
 import kaleido
 import plotly.express as px
+import requests
 
 #Time tooling
 from datetime import datetime
@@ -39,6 +36,9 @@ load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 GUILD = os.getenv('DISCORD_GUILD')
 NEWS_TOKEN = os.getenv('NEWS_API_TOKEN')
+ALPACA_TOKEN = os.getenv('ALPACA_TOKEN')
+ALPACA_SECRET = os.getenv('ALPACA_SECRET')
+
 
 clientIntents = discord.Intents.all()
 
@@ -181,7 +181,7 @@ async def chart_macd(ctx,date1,date2,stock):
                 style='blueskies',volume=True,volume_panel=2,panel_ratios=(6,3,2),savefig='output.png')
 
         file = discord.File("output.png", filename="output.png")
-        embed = discord.Embed(colour=0xFF8300,title="Stock MACD Plot")
+        embed = discord.Embed(colour=0xFF8300,title=f"{stock} MACD Plot")
         embed.set_image(url="attachment://output.png")
         await ctx.send(embed=embed, file=file)
         
@@ -282,6 +282,11 @@ async def chart_volatility(ctx, date1, date2, option, stock):
                 sharpe_ratio = (log_returns.rolling(window=TRADING_DAYS).mean() - Rf)*TRADING_DAYS/vol
                 trace = px.line(sharpe_ratio)
                 trace.write_image("output.png")
+            case "Sortino-Ratio":
+                sortino_vol = log_returns[log_returns<0].rolling(window=TRADING_DAYS, center=True,min_periods=10).std() * np.sqrt(TRADING_DAYS)
+                s_ratio = (log_returns.rolling(window=TRADING_DAYS).mean() - Rf)*TRADING_DAYS/sortino_vol
+                trace = px.line(s_ratio.dropna())
+                trace.write_image("output.png")
         
         file = discord.File("output.png", filename="output.png")
         embed = discord.Embed(colour=0xFF8300,title=f"Stock {option} Plot")
@@ -298,17 +303,26 @@ async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound): 
         await ctx.send("Unknown command, please type !stocko help for a list of commands.")
 
-# def parse_json(stockJson):
-#     '''Should only have Close, Open, Volume, Low, High'''
-#     pass
-  
-# @client.command(name='RealTime', help='Shows realtime statistics of a specified stock')
-# async def stock_realtime(ctx, symbol:str):
-#     url = f'https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1m&range=1d&close=adjusted'
+def parse_json(data):
+    '''Parse should grab: regularMarketDayRange, regularMarketDayHigh, regularMarketDayLow, regularMarketVolume'''
+    data = data['quoteResponse']
+    results=data['result']
+    parsed_data = {}
+    for entry in results:
+        for k,v in entry.items():
+            if k == 'regularMarketDayRange' or k == 'regularMarketDayHigh' or k == 'regularMarketDayLow' or k == 'regularMarketVolume':
+                parsed_data[k] = v
+            else: pass
+    return parsed_data
     
-#     response = requests.get(url,headers={'User-agent': 'Mozilla/5.0'})
-#     d = response.json()
-#     data = parse_json(d) 
         
+@client.command(name='RealTime', help='Shows realtime statistics of a specified stock')
+async def stock_realtime(ctx, symbol:str):
+    url = f'https://query1.finance.yahoo.com/v7/finance/quote?symbols={symbol}'
+    count = 0
+    
+    response = requests.get(url,headers={'User-agent': 'Mozilla/5.0'})
+    data = json.loads(response.text)
+    pj = parse_json(data)
         
 client.run(TOKEN)
