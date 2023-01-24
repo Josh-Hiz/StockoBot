@@ -1,4 +1,5 @@
 #import os
+import asyncio
 import os
 
 #discord import 
@@ -10,7 +11,6 @@ from dotenv import load_dotenv
 
 #import data science tools
 from pandas_datareader import data as pdr
-import pandas as pd
 import numpy as np
 import yfinance as yf
 import matplotlib.pyplot as plt
@@ -310,7 +310,7 @@ def parse_json(data):
     parsed_data = {}
     for entry in results:
         for k,v in entry.items():
-            if k == 'regularMarketDayRange' or k == 'regularMarketDayHigh' or k == 'regularMarketDayLow' or k == 'regularMarketVolume':
+            if k == 'regularMarketPrice' or k == 'regularMarketDayRange' or k == 'regularMarketDayHigh' or k == 'regularMarketDayLow' or k == 'regularMarketVolume':
                 parsed_data[k] = v
             else: pass
     return parsed_data
@@ -318,11 +318,35 @@ def parse_json(data):
         
 @client.command(name='RealTime', help='Shows realtime statistics of a specified stock')
 async def stock_realtime(ctx, symbol:str):
+
     url = f'https://query1.finance.yahoo.com/v7/finance/quote?symbols={symbol}'
     count = 0
-    
-    response = requests.get(url,headers={'User-agent': 'Mozilla/5.0'})
-    data = json.loads(response.text)
-    pj = parse_json(data)
+    real_embed = discord.Embed(colour=0xFF8300)
+    user_msg = await ctx.send(embed=real_embed)
+    while not client.is_closed():
+        try:
+            msg = await client.wait_for("message",timeout=10)
+            try: await msg.delete()
+            except Exception: pass
+            try:
+                print("Second try is executed")
+                count+=1
+                response = requests.get(url,headers={'User-agent': 'Mozilla/5.0'})
+                data = json.loads(response.text)
+                pj = parse_json(data)
+                price = pj['regularMarketPrice']
+                volume = pj['regularMarketVolume']
+                marketRange = pj['regularMarketDayRange']
+                high = pj['regularMarketDayHigh']
+                low = pj['regularMarketDayLow']
+                update_embed = discord.Embed(colour=0xFF8300,title=f"{symbol} Realtime Data:",description=f'Price: ${price} Volume: {volume} Range: {marketRange} High: ${high} Low: ${low} Count: {str(count)}')
+                await user_msg.edit(embed=update_embed)
+                user_msg
+                if count == 100: break 
+            except Exception: print("Error")   
+        except asyncio.TimeoutError: 
+            print("Stopped")
+        
         
 client.run(TOKEN)
+
