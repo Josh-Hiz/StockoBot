@@ -36,9 +36,6 @@ load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 GUILD = os.getenv('DISCORD_GUILD')
 NEWS_TOKEN = os.getenv('NEWS_API_TOKEN')
-ALPACA_TOKEN = os.getenv('ALPACA_TOKEN')
-ALPACA_SECRET = os.getenv('ALPACA_SECRET')
-
 
 clientIntents = discord.Intents.all()
 
@@ -318,7 +315,7 @@ def parse_json(data):
         
 @client.command(name='RealTime', help='Shows realtime statistics of a specified stock')
 async def stock_realtime(ctx, symbol:str):
-
+    colors = [0xFF8300,0xDAF7A6,0xFF5733,0xC70039,0x581845]
     url = f'https://query1.finance.yahoo.com/v7/finance/quote?symbols={symbol}'
     count = 0
     real_embed = discord.Embed(colour=0xFF8300, title=f"{symbol} Realtime Data:")
@@ -335,7 +332,7 @@ async def stock_realtime(ctx, symbol:str):
                 marketRange = pj['regularMarketDayRange']
                 high = pj['regularMarketDayHigh']
                 low = pj['regularMarketDayLow']
-                update_embed = discord.Embed(colour=0xFF8300,title=f"{symbol} Realtime Data:",description=f'Price: ${price} Volume: {volume} Range: {marketRange} High: ${high} Low: ${low} Count: {str(count)}')
+                update_embed = discord.Embed(colour=colors[count%len(colors)],title=f"{symbol} Realtime Data:",description=f'Price: ${price} Volume: {volume} Range: {marketRange} High: ${high} Low: ${low} Count: {str(count)}')
                 await asyncio.sleep(3)
                 await user_msg.edit(embed=update_embed)
                 if count == 100: break 
