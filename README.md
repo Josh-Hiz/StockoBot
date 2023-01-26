@@ -1,6 +1,6 @@
 # StockoBot! A python based discord bot designed for simplicity
 ### Features (Or potential features):
-- Graphing and plotting of any historical stock price from 1970 to the present
+- Graphing and plotting of any historical stock price from 1970 to the present including a full MACD!
 - Graphing and plotting of any historical volatility data from 1970
 - Graphing and plotting of any appropriate ratio you would need from a stock! (Sharpe, M2, etc)
 - Real-time price data of a specific stock including: Open, Close, High, Low, and Volume with real-time updates!
