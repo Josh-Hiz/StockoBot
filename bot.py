@@ -5,7 +5,7 @@ import os
 #discord import 
 import discord
 from discord.ext import commands
-
+import asyncio
 #import dotenv 
 from dotenv import load_dotenv
 
@@ -321,15 +321,11 @@ async def stock_realtime(ctx, symbol:str):
 
     url = f'https://query1.finance.yahoo.com/v7/finance/quote?symbols={symbol}'
     count = 0
-    real_embed = discord.Embed(colour=0xFF8300)
+    real_embed = discord.Embed(colour=0xFF8300, title=f"{symbol} Realtime Data:")
     user_msg = await ctx.send(embed=real_embed)
     while not client.is_closed():
         try:
-            msg = await client.wait_for("message",timeout=10)
-            try: await msg.delete()
-            except Exception: pass
             try:
-                print("Second try is executed")
                 count+=1
                 response = requests.get(url,headers={'User-agent': 'Mozilla/5.0'})
                 data = json.loads(response.text)
@@ -340,8 +336,8 @@ async def stock_realtime(ctx, symbol:str):
                 high = pj['regularMarketDayHigh']
                 low = pj['regularMarketDayLow']
                 update_embed = discord.Embed(colour=0xFF8300,title=f"{symbol} Realtime Data:",description=f'Price: ${price} Volume: {volume} Range: {marketRange} High: ${high} Low: ${low} Count: {str(count)}')
+                await asyncio.sleep(3)
                 await user_msg.edit(embed=update_embed)
-                user_msg
                 if count == 100: break 
             except Exception: print("Error")   
         except asyncio.TimeoutError: 
