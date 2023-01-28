@@ -27,7 +27,9 @@ As you can see, there are alot of things you would have to type to make it prope
 2. Mav set: This provides the moving average line based on your graph, the setting is recommended to go from 2-20, with the smaller value being closer to the presented graph
 - Graph-MACD: To the see a stocks full MACD, please type !stocko Graph-MACD *date_1* *date_2* *stock_ticker*
 - Graph-Volatility: To see a stocks historical volatility dependent on what you want, please type "!stocko Graph-Volatility *date_1* *date_2* *option* *chart_type* *stock_ticker*"
-There a few options for you to use:
+There are a few options for you to use:
 1. Chart option: either Historical or Predict
 2. Chart types: If you choose Historical, you can choose type either *Histogram*, or a historical *Line* graph. If you choose *Predict*, the only avaliable option is GARCH, to provide you with a GARCH model of your selected stock
-- Graph-Ratio: To see a stocks' historical ratios, please type !stocko Graph-Ratio *date_1* *date_2* *option* *stock*
+- Graph-Ratio: To see a stocks' historical ratios, please type !stocko Graph-Ratio *date_1* *date_2* *option* *stock*, for chart option: Sharpe-Ratio or Sotino-Ratio
+
+Additional docs and or features to be added in the future

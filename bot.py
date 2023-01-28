@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 #import data science tools
 from pandas_datareader import data as pdr
 import numpy as np
+from pytz import timezone
 import yfinance as yf
 import matplotlib.pyplot as plt
 import mplfinance as mpf
@@ -318,6 +319,7 @@ async def stock_realtime(ctx, symbol:str):
     colors = [0xFF8300,0xDAF7A6,0xFF5733,0xC70039,0x581845]
     url = f'https://query1.finance.yahoo.com/v7/finance/quote?symbols={symbol}'
     count = 0
+    tz = timezone('EST')
     real_embed = discord.Embed(colour=0xFF8300, title=f"{symbol} Realtime Data:")
     user_msg = await ctx.send(embed=real_embed)
     while not client.is_closed():
@@ -332,9 +334,9 @@ async def stock_realtime(ctx, symbol:str):
                 marketRange = pj['regularMarketDayRange']
                 high = pj['regularMarketDayHigh']
                 low = pj['regularMarketDayLow']
-                update_embed = discord.Embed(colour=colors[count%len(colors)],title=f"{symbol} Realtime Data:",description=f'Price: ${price} Volume: {volume} Range: {marketRange} High: ${high} Low: ${low} Count: {str(count)}')
-                await asyncio.sleep(3)
+                update_embed = discord.Embed(colour=colors[count%len(colors)],title=f"{symbol} Realtime Data:",description=f'```css\nPrice: ${price}\nVolume: {volume}\nRange: {marketRange}\nHigh: ${high}\nLow: ${low}\nTime (EST): {datetime.now(tz)}```')
                 await user_msg.edit(embed=update_embed)
+                await asyncio.sleep(5)
                 if count == 100: break 
             except Exception: print("Error")   
         except asyncio.TimeoutError: 
