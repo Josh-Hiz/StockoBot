@@ -1,3 +1,5 @@
+#TODO Add news api support, possibly make a subscription system that will email people news based on some stock tickers or news outlets
+
 #import os
 import asyncio
 import os
