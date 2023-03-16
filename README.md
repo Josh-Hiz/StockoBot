@@ -3,7 +3,7 @@
 - Graphing and plotting of any historical stock price from 1970 to the present including a full MACD!
 - Graphing and plotting of any historical volatility data from 1970
 - Graphing and plotting of any appropriate ratio you would need from a stock! (Sharpe, M2, etc)
-- Real-time price data of a specific stock including: Open, Close, High, Low, and Volume with real-time updates!
+- Real-time stock tickers with accurate price data of a specific stock including: Open, Close, High, Low, and Volume with real-time updates from yahoo finance!
 - News API to quickly get links to any news outlit you want (IN DEVELOPMENT)
 - Possibly trade stocks (IDEA/POTENTIAL THING TO LOOK INTO THE FUTURE)
 
