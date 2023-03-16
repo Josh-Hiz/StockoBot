@@ -232,7 +232,7 @@ async def chart_volatility(ctx,
                     case 'Line':
                         TRADING_DAYS = 60
                         vol = log_returns.rolling(window=TRADING_DAYS).std() * np.sqrt(TRADING_DAYS)
-                        trace = px.line(vol,title="Historical volatility over a rolling window",template='plotly_dark')
+                        trace = px.line(vol,title="Historical volatility over a rolling window",template='plotly_dark',width=600,height=400)
                         trace.write_image("output.png")
                     case 'Histogram':
                         trace = px.histogram(log_returns,title=f"{stock} Annualized Volatility: {str(round(annualized_vol,1))}",template='plotly_dark')
@@ -242,8 +242,7 @@ async def chart_volatility(ctx,
                 match chart_type:
                     # Predict will only have Line for GARCH model
                     case 'GARCH':
-                        trace = px.line(log_returns * 100,title="Volatility with prediction",template='plotly_dark')
-                        trace.update_layout(yaxis_title="Frequency")
+                        trace = px.line(log_returns * 100,title="Daily Returns over time",template='plotly_dark',width=800,height=400)
                         trace.write_image("output.png")
 
         file = discord.File("output.png", filename="output.png")
@@ -346,23 +345,32 @@ async def stock_realtime(ctx, symbol:str):
             print("Stopped")
 
 @client.command(name='Graph-Indicators',help='Outputs a graph of 3 technical indicators, RSI, BBands, and VWAP for a selected time range and stock',aliases=['gi'])
-async def graph_indicators(ctx, left_time_point:str, right_time_point:str, stock:str):
+async def graph_indicators(ctx, 
+                           left_time_point=commands.parameter(description="Date in %Y/%m/%d-%H:%M:%S or %Y/%m/%d"), 
+                           right_time_point=commands.parameter(description="Date in %Y/%m/%d-%H:%M:%S or %Y/%m/%d"),
+                           stock=commands.parameter(description="Stock ticker, AAPL, GOOGL, etc")):
     if(stock == None):
         await ctx.send("ERROR: Cannot have stock=Nonetype")
         raise discord.DiscordException("ERROR: Cannot have stock=Nonetype")
-    else:
+    if validate_time(left_time_point, right_time_point):
         indicator = IndicatorsTA(stock,left_time_point,right_time_point)
         indicator.plotIndicators()
         file = discord.File("output.png", filename="output.png")
         embed = discord.Embed(colour=0xFF8300,title=f"Stock RSI, BBands, and VWAP for {stock} Plot")
         embed.set_image(url="attachment://output.png")
         await ctx.send(embed=embed, file=file)
+    else:
+        await ctx.send("ERROR: Cannot have the first time point greater than the second time point OR any time thats greater than today")
+        raise discord.DiscordException("ERROR: Cannot have the first time point greater than the second time point")
         
 @client.command(name='Options-Chain-Call',help='Outputs the call options chain for a selected stock',aliases=['opc'])
 async def get_call(ctx, stock:str, num_rows=10):
     if(stock == None):
         await ctx.send("ERROR: Cannot have stock=Nonetype")
         raise discord.DiscordException("ERROR: Cannot have stock=Nonetype")
+    elif num_rows>20:
+        await ctx.send("ERROR: Cannot exceed 20 rows!")
+        raise discord.DiscordException("ERROR: Cannot exceed 20 rows!")
     else:
         expirationDates = op.get_expiration_dates(stock)
         callData = op.get_calls(stock,date=expirationDates[0])
