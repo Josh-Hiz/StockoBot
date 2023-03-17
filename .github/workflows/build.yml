@@ -23,5 +23,5 @@ jobs:
         with:
           push: true
           tags: |
-            ghcr.io/Josh-Hiz/stockobot:${{ github.sha }}
-            ghcr.io/Josh-Hiz/stockobot:latest
+            ghcr.io/josh-hiz/stockobot:${{ github.sha }}
+            ghcr.io/josh-hiz/stockobot:latest
