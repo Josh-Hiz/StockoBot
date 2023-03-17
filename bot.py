@@ -352,16 +352,13 @@ async def graph_indicators(ctx,
     if(stock == None):
         await ctx.send("ERROR: Cannot have stock=Nonetype")
         raise discord.DiscordException("ERROR: Cannot have stock=Nonetype")
-    if validate_time(left_time_point, right_time_point):
-        indicator = IndicatorsTA(stock,left_time_point,right_time_point)
-        indicator.plotIndicators()
-        file = discord.File("output.png", filename="output.png")
-        embed = discord.Embed(colour=0xFF8300,title=f"Stock RSI, BBands, and VWAP for {stock} Plot")
-        embed.set_image(url="attachment://output.png")
-        await ctx.send(embed=embed, file=file)
-    else:
-        await ctx.send("ERROR: Cannot have the first time point greater than the second time point OR any time thats greater than today")
-        raise discord.DiscordException("ERROR: Cannot have the first time point greater than the second time point")
+    
+    indicator = IndicatorsTA(stock,left_time_point,right_time_point)
+    indicator.plotIndicators()
+    file = discord.File("output.png", filename="output.png")
+    embed = discord.Embed(colour=0xFF8300,title=f"Stock RSI, BBands, and VWAP for {stock} Plot")
+    embed.set_image(url="attachment://output.png")
+    await ctx.send(embed=embed, file=file)
         
 @client.command(name='Options-Chain-Call',help='Outputs the call options chain for a selected stock',aliases=['opc'])
 async def get_call(ctx, stock:str, num_rows=10):
