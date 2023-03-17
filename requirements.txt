@@ -8,3 +8,7 @@ requests
 bs4
 plotly
 kaleido
+python-dotenv
+dataframe_image
+yahoo_fin
+mplfinance
