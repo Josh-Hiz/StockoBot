@@ -320,6 +320,7 @@ def parse_json(data):
         
 @client.command(name='RealTime', help='Shows realtime statistics of a specified stock',aliases=['rt'])
 async def stock_realtime(ctx, symbol:str):
+    
     colors = [0xFF8300,0xDAF7A6,0xFF5733,0xC70039,0x581845]
     url = f'https://query1.finance.yahoo.com/v6/finance/quote?symbols={symbol}'
     count = 0
@@ -342,7 +343,9 @@ async def stock_realtime(ctx, symbol:str):
                 await user_msg.edit(embed=update_embed)
                 await asyncio.sleep(5)
                 if count == 100: break 
-            except Exception: print("Error")   
+            except Exception:
+                await ctx.send("ERROR: Invalid stock!")
+                raise discord.DiscordException("ERROR: Invalid stock!")
         except asyncio.TimeoutError: 
             print("Stopped")
 
