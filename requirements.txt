@@ -1,14 +1,14 @@
-discord.py
+discord.py == 2.2.3
 newsapi-python
-pandas
-matplotlib
-yfinance
-pandas-datareader
-requests
-bs4
-plotly
+pandas == 2.0.1
+matplotlib == 3.7.1
+yfinance == 0.2.18
+pandas-datareader == 0.10.0
+requests == 2.28.1
+bs4 == 0.0.1
+plotly == 5.13.1
 kaleido
-python-dotenv
-dataframe_image
-yahoo_fin
-mplfinance
+python-dotenv == 0.21.0
+dataframe_image == 0.1.11
+yahoo_fin == 0.8.9.1
+mplfinance == 0.12.9b7

@@ -39,7 +39,9 @@ yf.pdr_override()
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 GUILD = os.getenv('DISCORD_GUILD')
-NEWS_TOKEN = os.getenv('NEWS_API_TOKEN')
+NEWS_TOKEN = os.getenv('NEWS_TOKEN')
+
+API_ENDPOINT = "https://api.newsfilter.io/public/search?token={}".format(NEWS_TOKEN)
 
 clientIntents = discord.Intents.all()
 
@@ -319,7 +321,7 @@ def parse_json(data):
 @client.command(name='RealTime', help='Shows realtime statistics of a specified stock',aliases=['rt'])
 async def stock_realtime(ctx, symbol:str):
     colors = [0xFF8300,0xDAF7A6,0xFF5733,0xC70039,0x581845]
-    url = f'https://query1.finance.yahoo.com/v7/finance/quote?symbols={symbol}'
+    url = f'https://query1.finance.yahoo.com/v6/finance/quote?symbols={symbol}'
     count = 0
     tz = timezone('EST')
     real_embed = discord.Embed(colour=0xFF8300, title=f"{symbol} Realtime Data:")
@@ -328,7 +330,7 @@ async def stock_realtime(ctx, symbol:str):
         try:
             try:
                 count+=1
-                response = requests.get(url,headers={'User-agent': 'Mozilla/5.0'})
+                response = requests.get(url,headers={'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'})
                 data = json.loads(response.text)
                 pj = parse_json(data)
                 price = pj['regularMarketPrice']
@@ -401,5 +403,18 @@ async def get_put(ctx, stock:str,num_rows=10):
         embed.set_image(url="attachment://output.png")
         await ctx.send(embed=embed, file=file)
         os.remove('output.png')
+        
+@client.command(name="news",help='Outputs financial news based on a prompt',alias='n')
+async def get_news(ctx):
+    queryString = "symbols:NFLX AND publishedAt:[2020-02-01 TO 2020-05-20]"
+    payload = {
+        "queryString": queryString,
+        "from": 0,
+        "size": 10
+    }
+    response = requests.post(API_ENDPOINT, json=payload)
+    articles = response.json()
+    print(articles)
+
 
 client.run(TOKEN)
