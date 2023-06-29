@@ -2,6 +2,11 @@
 import asyncio
 import os
 
+from Statistics.Indicators import *
+from news_handler.news import parse_news
+from date_handler.date_verify import verify_range, validate_time
+from Statistics.Quote import parse_json
+
 #discord imports
 import discord
 from discord.ext import commands
@@ -20,14 +25,9 @@ import matplotlib.pyplot as plt
 import mplfinance as mpf
 import plotly.express as px
 
-import requests
-from Statistics.Indicators import *
-
-#Time and Data Parsing tooling
-from datetime import datetime
-from requests import *
+#Time and Data parsing tooling
 import json
-
+import requests
 
 months = ['January','Febuary','March',
           'April','May','June','July', 
@@ -37,11 +37,10 @@ months = ['January','Febuary','March',
 yf.pdr_override()
 
 load_dotenv()
+
+FINANCE_TOKEN = os.getenv('FINANCE_API_TOKEN')
 TOKEN = os.getenv('DISCORD_TOKEN')
 GUILD = os.getenv('DISCORD_GUILD')
-NEWS_TOKEN = os.getenv('NEWS_TOKEN')
-
-API_ENDPOINT = "https://api.newsfilter.io/public/search?token={}".format(NEWS_TOKEN)
 
 clientIntents = discord.Intents.all()
 
@@ -52,53 +51,10 @@ client = commands.Bot(command_prefix='!stocko ', intents=clientIntents,help_comm
 @client.event
 async def on_ready():
     await client.wait_until_ready()
-    for guild in client.guilds:
-            if guild.name == GUILD:
-                break    
-    print(
-        f'{client.user} is connected to the following guild:\n'
-        f'{guild.name}(id: {guild.id})'
-    )
-    
-    members = '\n - '.join([member.name for member in guild.members])
-    print(f'Guild Members:\n - {members}')
 
-# Helper functions for basic functionality, data gathering, and time verification
 def get_data(stock, start_date, end_date):
     df = pdr.get_data_yahoo(stock, start = start_date, end = end_date)
     return df
-
-def convert_timestamp(date_time):
-    ALLOWED_STRING_FORMATS = ["%Y/%m/%d-%H:%M:%S", "%Y/%m/%d"]
-    for format in ALLOWED_STRING_FORMATS:
-        try:
-            d = datetime.strptime(date_time, format)
-            return d
-        except ValueError:
-            pass
-    raise ValueError
-
-def validate_time(left_time_point, right_time_point):
-    if(left_time_point > right_time_point or right_time_point > datetime.today() or left_time_point > datetime.today()):
-        return False
-    else: 
-        return True
-    
-# Return a tuple of left and right time points
-def verify_range(date1:str, date2:str):
-    if(date2 == "Present"): 
-        try:
-            right_time_point = datetime.today()
-            left_time_point = convert_timestamp(date1)
-        except ValueError:
-            raise ValueError
-    else:
-        try:
-            right_time_point = convert_timestamp(date2)
-            left_time_point = convert_timestamp(date1)
-        except ValueError:
-            raise ValueError
-    return (left_time_point,right_time_point)
 
 @client.command(name='Graph-Performance',help='Returns a chart of stock performance over a time interval',aliases=['gp'])
 async def performance_graph(ctx, 
@@ -123,6 +79,7 @@ async def performance_graph(ctx,
         await ctx.send(f'Years selected: {left_time_point.year}-{right_time_point.year}, stock selected: {stock}, first time point: {left_time_point}, second time point: {right_time_point}')
             
         data = get_data(stock, left_time_point, right_time_point)
+        print(data)
         
         plt.clf()
         
@@ -143,6 +100,7 @@ async def performance_graph(ctx,
             case 'Renko':
                 mpf.plot(data,mav=mav_set,volume=True,type='renko',style=mpf_style,title=f'\nStock Price between {months[left_time_point.month-1]} {left_time_point.day} and {months[right_time_point.month-1]} {right_time_point.day} within {left_time_point.year}-{right_time_point.year}',savefig='output.png',renko_params=dict(brick_size='atr',atr_length=2))
             case 'Point-Figure':
+                print(left_time_point,right_time_point)
                 mpf.plot(data,volume=True,type='pnf',style=mpf_style,title=f'\nStock Price between {months[left_time_point.month-1]} {left_time_point.day} and {months[right_time_point.month-1]} {right_time_point.day} within {left_time_point.year}-{right_time_point.year}',savefig='output.png',pnf_params=dict(box_size='atr',atr_length=2))
             case 'OHLC':
                 mpf.plot(data,mav=mav_set,volume=True,type='ohlc',style=mpf_style,title=f'\nStock Price between {months[left_time_point.month-1]} {left_time_point.day} and {months[right_time_point.month-1]} {right_time_point.day} within {left_time_point.year}-{right_time_point.year}',savefig='output.png')
@@ -304,50 +262,37 @@ async def chart_volatility(ctx, date1, date2,stock,option="Sharpe-Ratio"):
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound): 
         await ctx.send("Unknown command, please type !stocko help for a list of commands.")
-
-def parse_json(data):
-    '''Parse should grab: regularMarketDayRange, regularMarketDayHigh, regularMarketDayLow, regularMarketVolume'''
-    data = data['quoteResponse']
-    results=data['result']
-    parsed_data = {}
-    for entry in results:
-        for k,v in entry.items():
-            if k == 'regularMarketPrice' or k == 'regularMarketDayRange' or k == 'regularMarketDayHigh' or k == 'regularMarketDayLow' or k == 'regularMarketVolume':
-                parsed_data[k] = v
-            else: pass
-    return parsed_data
-    
-        
+            
 @client.command(name='RealTime', help='Shows realtime statistics of a specified stock',aliases=['rt'])
 async def stock_realtime(ctx, symbol:str):
     
     colors = [0xFF8300,0xDAF7A6,0xFF5733,0xC70039,0x581845]
-    url = f'https://query1.finance.yahoo.com/v6/finance/quote?symbols={symbol}'
+    url = f'https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}&apikey={FINANCE_TOKEN}'
     count = 0
-    tz = timezone('EST')
     real_embed = discord.Embed(colour=0xFF8300, title=f"{symbol} Realtime Data:")
     user_msg = await ctx.send(embed=real_embed)
     while not client.is_closed():
         try:
-            try:
-                count+=1
-                response = requests.get(url,headers={'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'})
-                data = json.loads(response.text)
-                pj = parse_json(data)
-                price = pj['regularMarketPrice']
-                volume = pj['regularMarketVolume']
-                marketRange = pj['regularMarketDayRange']
-                high = pj['regularMarketDayHigh']
-                low = pj['regularMarketDayLow']
-                update_embed = discord.Embed(colour=colors[count%len(colors)],title=f"{symbol} Realtime Data:",description=f'```css\nPrice: ${price}\nVolume: {volume}\nRange: {marketRange}\nHigh: ${high}\nLow: ${low}\nTime (EST): {datetime.now(tz)}```')
-                await user_msg.edit(embed=update_embed)
-                await asyncio.sleep(5)
-                if count == 100: break 
-            except Exception:
-                await ctx.send("ERROR: Invalid stock!")
-                raise discord.DiscordException("ERROR: Invalid stock!")
-        except asyncio.TimeoutError: 
-            print("Stopped")
+            count+=1
+            response = requests.get(url)
+            data = json.loads(response.text)
+            pj = parse_json(data)
+            print(list(pj.values()))
+            price = pj['price']
+            volume = pj['volume']
+            high = pj['high']
+            low = pj['low']
+            change = pj['change']
+            change_percent = pj['change percent']
+            ltd = pj['ltd']
+            update_embed = discord.Embed(colour=colors[count%len(colors)],title=f"{symbol} Realtime Data:",description=f'```css\nPrice: ${price}\nVolume: {volume}\nHigh: ${high}\nLow: ${low}\nChange: {change}\nChange Percent: {change_percent}\nLatest Trading Day: {ltd}\n```')
+            await user_msg.edit(embed=update_embed)
+            await asyncio.sleep(15)
+            if count == 25: break 
+        except Exception:
+            await ctx.send("ERROR: Invalid stock or Timeout!")
+            raise discord.DiscordException("ERROR: Invalid stock! or Timeout!")
+        
 
 @client.command(name='Graph-Indicators',help='Outputs a graph of 3 technical indicators, RSI, BBands, and VWAP for a selected time range and stock',aliases=['gi'])
 async def graph_indicators(ctx, 
@@ -407,17 +352,13 @@ async def get_put(ctx, stock:str,num_rows=10):
         await ctx.send(embed=embed, file=file)
         os.remove('output.png')
         
-@client.command(name="news",help='Outputs financial news based on a prompt',alias='n')
-async def get_news(ctx):
-    queryString = "symbols:NFLX AND publishedAt:[2020-02-01 TO 2020-05-20]"
-    payload = {
-        "queryString": queryString,
-        "from": 0,
-        "size": 10
-    }
-    response = requests.post(API_ENDPOINT, json=payload)
-    articles = response.json()
-    print(articles)
-
-
+@client.command(name="news",help='Outputs financial news based on a prompt',alias='nw')
+async def get_news(ctx, stock, topics=None):
+    await ctx.send("The news command can do alot more than you think! Type !stocko help news for a comprehensive list of all options you can do!")
+    url = f'https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers={stock}&apikey={FINANCE_TOKEN}' if topics == None else f'https://www.alphavantage.co/query?function=NEWS_SENTIMENT&topics={topics}&tickers={stock}&apikey={FINANCE_TOKEN}'
+    r = requests.get(url)
+    data = r.json()
+    emb = parse_news(data)
+    await ctx.send(embed=emb)
+    
 client.run(TOKEN)

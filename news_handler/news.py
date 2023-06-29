@@ -13,7 +13,8 @@ def parse_news(data):
     - Sentiment
     '''
     data["feed"] = data["feed"][:5]
-    news_emb = discord.Embed(colour=0x338AFF,title="Top 5 Articles for your stock!")
+    print(data)
+    news_emb = discord.Embed(colour=0x338AFF)
     for i in range(len(data["feed"])):
         news_emb.add_field(name=f'{data["feed"][i]["title"]}',value=f'{data["feed"][i]["summary"]}\n[Read More]({data["feed"][i]["url"]})\nSentiment: {data["feed"][i]["overall_sentiment_label"]}',inline=False)
         
