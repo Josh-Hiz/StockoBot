@@ -353,12 +353,15 @@ async def get_put(ctx, stock:str,num_rows=10):
         os.remove('output.png')
         
 @client.command(name="news",help='Outputs financial news based on a prompt',alias='nw')
-async def get_news(ctx, stock, topics=None):
-    await ctx.send("The news command can do alot more than you think! Type !stocko help news for a comprehensive list of all options you can do!")
-    url = f'https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers={stock}&apikey={FINANCE_TOKEN}' if topics == None else f'https://www.alphavantage.co/query?function=NEWS_SENTIMENT&topics={topics}&tickers={stock}&apikey={FINANCE_TOKEN}'
-    r = requests.get(url)
-    data = r.json()
-    emb = parse_news(data)
-    await ctx.send(embed=emb)
+async def get_news(ctx, stock, topics=None, num_articles=5):
+    if num_articles > 10:
+        await ctx.send("ERROR: Cannot exceed 10 articles!")
+    else:
+        await ctx.send("The news command can do alot more than you think! Type !stocko help news for a comprehensive list of all options you can do!")
+        url = f'https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers={stock}&apikey={FINANCE_TOKEN}' if topics == None else f'https://www.alphavantage.co/query?function=NEWS_SENTIMENT&topics={topics}&tickers={stock}&apikey={FINANCE_TOKEN}'
+        r = requests.get(url)
+        data = r.json()
+        emb = parse_news(data, num_articles)
+        await ctx.send(embed=emb)
     
 client.run(TOKEN)

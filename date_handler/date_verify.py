@@ -1,5 +1,6 @@
 # File to contain methods to verify the date and time of a stock
 from datetime import datetime
+from re import T
 
 def convert_timestamp(date_time):
     '''
@@ -37,4 +38,4 @@ def validate_time(left_time_point, right_time_point):
     """
     Validate the time points to make sure they are in a valid range
     """
-    return left_time_point > right_time_point or right_time_point > datetime.today() or left_time_point > datetime.today()
+    return not (left_time_point > right_time_point or right_time_point > datetime.today() or left_time_point > datetime.today())
