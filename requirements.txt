@@ -1,5 +1,4 @@
-discord.py == 2.2.3
-newsapi-python
+py-cord
 pandas == 2.0.1
 matplotlib == 3.7.1
 yfinance == 0.2.18
