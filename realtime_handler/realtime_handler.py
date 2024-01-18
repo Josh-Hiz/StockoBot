@@ -12,7 +12,9 @@ class RealtimeHandler:
         
     async def stock_realtime(self,ctx,symbol:str):
     
-        colors = [0xFF8300,0xDAF7A6,0xFF5733,0xC70039,0x581845]
+        colors = [0xff5733,0x43d4e9,0xdf27f1,0xf60c54,0xf5f109,0x09f51d,
+                0xffffff,0x000000,0xff8300,0xdaf7a6,0xff5733,0xc70039,
+                0x581845]
         url = f'https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}&apikey={FINANCE_TOKEN}'
         count = 0
         real_embed = discord.Embed(colour=0xFF8300, title=f"{symbol} Realtime Data:")
@@ -37,4 +39,4 @@ class RealtimeHandler:
                 if count == 25: break 
             except Exception:
                 await ctx.send("ERROR: Invalid stock or Timeout!")
-                raise discord.DiscordException("ERROR: Invalid stock! or Timeout!")
+                break
