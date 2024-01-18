@@ -37,3 +37,9 @@ There are a few options for you to use:
 - To see the options chain for a stock, please type ```!stocko opc stock``` for call, and ```!stocko opp stock``` for put
 
 Of course, you can always look back at the syntax by using ```!stocko help``` or ```!stocko help command_name``` for more specific help on the command you want to use. 
+
+More commands and features to be added if I feel like it, some ideas include:
+
+- Cointegration of StockoBot and StockoDash (Huge)
+- Building an inhouse webscraper possibly with YFinance in order to webscrape data to ease reliance on API's for some features, not sure what though
+- Literally working on anything else besides this lmao (i.e my SSG in OCaml that is not going so hot right now lol)
