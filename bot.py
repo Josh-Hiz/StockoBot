@@ -15,7 +15,6 @@ class Client(commands.Bot):
             intents=discord.Intents.all()
         )
     async def on_ready(self):
-        print("startup")
         await client.wait_until_ready()
         await self.setup_hook()
 
