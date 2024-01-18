@@ -1,6 +1,7 @@
+# Note: so much of this bs returns value error I feel I should just contain all this nonsense in one function for my mf life
+
 # File to contain methods to verify the date and time of a stock
 from datetime import datetime
-from re import T
 
 def convert_timestamp(date_time):
     '''
@@ -20,7 +21,7 @@ def verify_range(date1:str, date2:str):
     """
     Will parse the date strings and pass them to convert_timestamp
     """
-    if(date2 == "Present"): 
+    if(date2.lower() == "present"): 
         try:
             right_time_point = datetime.today()
             left_time_point = convert_timestamp(date1)
