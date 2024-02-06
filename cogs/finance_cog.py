@@ -1,10 +1,10 @@
 # FinanceCog.py
 from discord.ext import commands
-from query_handler.query import QueryHandler
-from statistics_handler.statistics_handler import StatisticsHandler
-from options_handler.options_handler import OptionHandler
-from news_handler.news_handler import NewsHandler
-# from realtime_handler.realtime_handler import RealtimeHandler
+from client.query_handler.query import QueryHandler
+from client.statistics_handler.statistics_handler import StatisticsHandler
+from client.options_handler.options_handler import OptionHandler
+from client.news_handler.news_handler import NewsHandler
+# from client.realtime_handler.realtime_handler import RealtimeHandler
 
 class FinanceCog(commands.Cog):
     
@@ -36,10 +36,6 @@ class FinanceCog(commands.Cog):
     async def graph_indicators(self, ctx, left_time_point, right_time_point,stock):
         await self.stat_client.graph_indicators(ctx,left_time_point,right_time_point,stock)
 
-    @commands.command(name="Query-Equity",help="Outputs the overall comprehensive summary of a given valid equity",aliases=["q"])
-    async def get_summary(self,ctx,stock):
-        await self.stat_client.stock_summary(ctx, stock)
-
     @commands.command(name='Options-Chain-Call',help='Outputs the call options chain for a selected stock',aliases=['opc'])
     async def get_call(self,ctx,stock,num_rows=10):
         await self.option_client.get_call(ctx,stock,num_rows)
@@ -47,16 +43,20 @@ class FinanceCog(commands.Cog):
     @commands.command(name='Options-Chain-Put',help='Outputs the put options chain for a selected stock',aliases=['opp'])
     async def get_put(self,ctx,stock,num_rows=10):
         await self.option_client.get_put(ctx,stock,num_rows)
-        
-    # @commands.command(name='RealTime', help='Shows realtime statistics of a specified stock',aliases=['rt'])
-    # async def stock_realtime(self, ctx, symbol):
-    #     await self.realtime_client.stock_realtime(ctx, symbol)
 
     @commands.command(name="news",
                       help='Outputs financial news based on a prompt\nTopics:\n- blockchain\n- earnings\n- ipo\n- mergers_and_acquisitions\n- financial_markets\n- economy_fiscal\n- economy_monetary\n- economy_macro\n- energy_transportation\n- finance\n- life_sciences\n- manufacturing\n- real_estate\n- retail_wholesale\n- technology\n',
                       aliases=['nw'])
     async def get_news(self,ctx, stock, topics=None, num_articles=5):
         await self.news_client.get_news(ctx, stock, topics, num_articles)
+        
+    # @commands.command(name='RealTime', help='Shows realtime statistics of a specified stock',aliases=['rt'])
+    # async def stock_realtime(self, ctx, symbol):
+    #     await self.realtime_client.stock_realtime(ctx, symbol)
+
+    @commands.command(name="Query-Equity",help="Outputs the overall comprehensive summary of a given valid equity",aliases=["q"])
+    async def get_summary(self,ctx,stock):
+        await self.stat_client.stock_summary(ctx, stock)
         
 def setup(bot):
     bot.add_cog(FinanceCog(bot))
