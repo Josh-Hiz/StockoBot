@@ -4,7 +4,10 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 
+
 load_dotenv()
+
+FINANCE_TOKEN = os.getenv('FINANCE_API_TOKEN')
 TOKEN = os.getenv('DISCORD_TOKEN')
 
 class Client(commands.Bot):
@@ -14,6 +17,7 @@ class Client(commands.Bot):
             case_insensitive=True,
             intents=discord.Intents.all()
         )
+        
     async def on_ready(self):
         await client.wait_until_ready()
         await self.setup_hook()
